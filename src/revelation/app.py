@@ -3,6 +3,7 @@ FastAPI 应用主文件
 """
 
 import os
+import asyncio
 from fastapi import FastAPI, File, UploadFile, Form, HTTPException
 
 from .schemas import HealthResponse, PredictionResponse
@@ -34,7 +35,7 @@ async def predict(
     image: UploadFile = File(..., description="Image file to predict"),
     top_k: int = Form(5, description="Number of top results to return")
 ):
-    """预测接口 - 通过文件上传"""
+    """预测接口 - 通过文件上传（支持并发）"""
     if not image.content_type or not image.content_type.startswith("image/"):
         raise HTTPException(status_code=400, detail="File must be an image")
     
@@ -42,7 +43,9 @@ async def predict(
         top_k = 5
     
     image_data = await image.read()
-    result = predict_image(image_data, top_k=top_k)
+    # 将同步的模型推理操作放到线程池中执行，避免阻塞事件循环
+    # 这样多个请求可以并发处理，不会互相阻塞
+    result = await asyncio.to_thread(predict_image, image_data, top_k)
     
     if len(result["results"]) > top_k:
         result["results"] = result["results"][:top_k]
