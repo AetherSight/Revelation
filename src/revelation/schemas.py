@@ -21,3 +21,6 @@ class PredictionResult(BaseModel):
 class PredictionResponse(BaseModel):
     results: List[PredictionResult]
 
+
+class FeedbackResponse(BaseModel):
+    status: str

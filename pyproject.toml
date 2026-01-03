@@ -16,6 +16,8 @@ python = "^3.10"
 fastapi = "^0.115.0"
 uvicorn = {extras = ["standard"], version = "^0.32.0"}
 python-multipart = "^0.0.12"
+sqlalchemy = "^2.0.0"
+cos-python-sdk-v5 = "^1.9.25"
 torch = {version = "==2.7.0", source = "pytorch-cu126"}
 torchvision = {version = "==0.22.0", source = "pytorch-cu126"}
 opencv-python = ">=4.8.0"

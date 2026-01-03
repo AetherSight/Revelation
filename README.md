@@ -9,6 +9,7 @@ Deep learning-based web service for recognizing Final Fantasy XIV equipment from
 - FastAPI-based REST API with automatic OpenAPI documentation
 - Efficient embedding-based similarity search
 - Automatic gallery cache management
+- Feedback system with flexible storage backend (local filesystem or Tencent COS)
 - Docker-ready for microservice deployment
 
 ## Development
@@ -33,6 +34,19 @@ poetry install
    - `MODEL_DIR` - Model directory (default: `models`)
    - `GALLERY_ROOT` - Gallery image root directory (only needed if cache doesn't exist)
    - `PORT` - Service port (default: `5000`)
+   - `DEBUG` - Debug mode (default: `true`)
+   
+   **Feedback Storage Configuration:**
+   - `STORAGE_TYPE` - Storage type: `local` or `cos` (default: `local`)
+   - `FEEDBACK_STORAGE_DIR` - Local storage directory (default: `feedback_images`)
+   - `FEEDBACK_DB_PATH` - Database path for feedback records (default: `feedback.db`)
+   
+   **Tencent COS Configuration (when STORAGE_TYPE=cos):**
+   - `COS_SECRET_ID` - Tencent Cloud SecretId (required)
+   - `COS_SECRET_KEY` - Tencent Cloud SecretKey (required)
+   - `COS_REGION` - COS region (required, e.g., `ap-beijing`)
+   - `COS_BUCKET` - COS bucket name (required)
+   - `COS_BASE_PATH` - Base path in COS (default: `feedback`)
 
 4. Run:
 ```bash
@@ -58,7 +72,13 @@ Once the service is running, you can access:
 - `POST /predict` - Predict equipment from uploaded image
   - Parameters:
     - `image`: Image file (multipart/form-data)
-    - `top_k`: Number of top results to return (default: 5)
+  - Returns: Top-10 recognition results (display count controlled by frontend)
+- `POST /feedback` - Submit feedback with correct label
+  - Parameters:
+    - `image`: User-marked image region (multipart/form-data)
+    - `label`: Correct equipment label (form field)
+  - Response:
+    - `status`: "success"
 
 ## Deployment
 
@@ -84,6 +104,31 @@ docker run -d -p 5000:5000 \
   -v /path/to/models:/app/models \
   -v /path/to/gallery:/path/to/gallery \
   -e GALLERY_ROOT=/path/to/gallery \
+  --name revelation \
+  revelation
+```
+
+**With Feedback Storage (Local):**
+```bash
+docker run -d -p 5000:5000 \
+  -v /path/to/models:/app/models \
+  -v /path/to/feedback:/app/feedback_images \
+  -v /path/to/feedback.db:/app/feedback.db \
+  -e STORAGE_TYPE=local \
+  -e FEEDBACK_STORAGE_DIR=/app/feedback_images \
+  --name revelation \
+  revelation
+```
+
+**With Feedback Storage (Tencent COS):**
+```bash
+docker run -d -p 5000:5000 \
+  -v /path/to/models:/app/models \
+  -e STORAGE_TYPE=cos \
+  -e COS_SECRET_ID=your_secret_id \
+  -e COS_SECRET_KEY=your_secret_key \
+  -e COS_REGION=ap-beijing \
+  -e COS_BUCKET=your-bucket-name \
   --name revelation \
   revelation
 ```

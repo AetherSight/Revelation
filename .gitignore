@@ -57,3 +57,8 @@ models/*.ckpt
 *.gif
 *.webp
 
+# 反馈数据
+feedback_images/
+feedback.db
+*.db-journal
+

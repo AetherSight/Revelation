@@ -6,9 +6,11 @@ import os
 import asyncio
 from fastapi import FastAPI, File, UploadFile, Form, HTTPException
 
-from .schemas import HealthResponse, PredictionResponse
+from .schemas import HealthResponse, PredictionResponse, FeedbackResponse
 from .model_loader import load_model, get_model, get_gallery
 from .predictor import predict_image
+from .storage import get_storage_backend
+from .database import init_db, create_feedback_record
 
 app = FastAPI(
     title="Revelation",
@@ -32,19 +34,14 @@ async def health():
 
 @app.post("/predict", response_model=PredictionResponse, tags=["Prediction"])
 async def predict(
-    image: UploadFile = File(..., description="Image file to predict"),
-    top_k: int = Form(5, description="Number of top results to return")
+    image: UploadFile = File(..., description="Image file to predict")
 ):
-    """预测接口 - 通过文件上传（支持并发）"""
+    """预测接口 - 通过文件上传（支持并发），固定返回top-10结果"""
     if not image.content_type or not image.content_type.startswith("image/"):
         raise HTTPException(status_code=400, detail="File must be an image")
     
-    if top_k <= 0:
-        top_k = 5
-    
+    top_k = 10
     image_data = await image.read()
-    # 将同步的模型推理操作放到线程池中执行，避免阻塞事件循环
-    # 这样多个请求可以并发处理，不会互相阻塞
     result = await asyncio.to_thread(predict_image, image_data, top_k)
     
     if len(result["results"]) > top_k:
@@ -53,10 +50,48 @@ async def predict(
     return result
 
 
+@app.post("/feedback", response_model=FeedbackResponse, tags=["Feedback"])
+async def feedback(
+    image: UploadFile = File(..., description="用户标记的图片区域"),
+    label: str = Form(..., description="正确的装备label")
+):
+    """反馈接口 - 接收用户标记的图片区域和正确的装备label"""
+    if not image.content_type or not image.content_type.startswith("image/"):
+        raise HTTPException(status_code=400, detail="File must be an image")
+    
+    if not label or not label.strip():
+        raise HTTPException(status_code=400, detail="label cannot be empty")
+    
+    try:
+        image_data = await image.read()
+        storage = get_storage_backend()
+        image_path = await storage.save(image_data, image.filename or "image.jpg")
+        create_feedback_record(image_path=image_path, label=label.strip())
+        
+        return {
+            "status": "success"
+        }
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Failed to save feedback: {str(e)}")
+
+
 @app.on_event("startup")
 async def startup_event():
     """启动时加载模型和gallery"""
     import asyncio
+    
+    try:
+        init_db()
+        print("[Startup] ✓ Database initialized")
+    except Exception as e:
+        print(f"[Startup] ⚠ Database initialization warning: {e}")
+    
+    try:
+        storage = get_storage_backend()
+        storage_type = os.getenv('STORAGE_TYPE', 'local').lower()
+        print(f"[Startup] ✓ Storage backend initialized: {storage_type}")
+    except Exception as e:
+        print(f"[Startup] ⚠ Storage backend initialization warning: {e}")
     
     model = get_model()
     gallery_embs, _ = get_gallery()
