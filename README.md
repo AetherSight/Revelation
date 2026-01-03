@@ -26,8 +26,8 @@ poetry install
 ```
 
 2. Place model files in `models/`:
-   - `epoch_50_supcon.pth` - Main model (required)
-   - `epoch_50_supcon_gallery.pth` - Gallery cache (auto-generated if not exists)
+   - `aethersight.pth` - Main model (required)
+   - `aethersight_gallery.pth` - Gallery cache (auto-generated if not exists)
 
 3. Set environment variables (optional):
    - `MODEL_DIR` - Model directory (default: `models`)
@@ -40,8 +40,8 @@ poetry run python -m revelation
 ```
 
 The service will automatically:
-- Load the model from `models/epoch_50_supcon.pth`
-- Load gallery cache from `models/epoch_50_supcon_gallery.pth` (if exists)
+- Load the model from `models/aethersight.pth`
+- Load gallery cache from `models/aethersight_gallery.pth` (if exists)
 - Build gallery from `GALLERY_ROOT` if cache doesn't exist
 - Start the web server after everything is loaded
 
@@ -77,7 +77,7 @@ docker run -d -p 5000:5000 \
   revelation
 ```
 
-**Note**: If `epoch_50_supcon_gallery.pth` exists in the mounted `models/` directory, `GALLERY_ROOT` is not required. Otherwise, mount the gallery directory and set the environment variable:
+**Note**: If `aethersight_gallery.pth` exists in the mounted `models/` directory, `GALLERY_ROOT` is not required. Otherwise, mount the gallery directory and set the environment variable:
 
 ```bash
 docker run -d -p 5000:5000 \

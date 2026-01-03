@@ -48,7 +48,7 @@ def load_model():
     print(f"Using device: {device}")
 
     # 加载主模型
-    model_path = os.path.join(MODEL_DIR, "epoch_50_supcon.pth")
+    model_path = os.path.join(MODEL_DIR, "aethersight.pth")
     if not os.path.exists(model_path):
         raise FileNotFoundError(f"Model file not found: {model_path}")
 
@@ -61,7 +61,7 @@ def load_model():
     transform = InferenceTransform()
 
     # 加载gallery（优先使用缓存文件）
-    gallery_cache_path = os.path.join(MODEL_DIR, "epoch_50_supcon_gallery.pth")
+    gallery_cache_path = os.path.join(MODEL_DIR, "aethersight_gallery.pth")
     
     # 如果缓存文件存在，直接加载
     if os.path.exists(gallery_cache_path):

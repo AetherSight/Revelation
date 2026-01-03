@@ -12,10 +12,6 @@ from .dataset import imread_unicode
 from .model_loader import get_model, get_gallery, get_transform, get_device
 
 
-# 固定的 top_n 值（去重前取的Top-N）
-TOP_N = 50
-
-
 def predict_image(image_data, top_k=5):
     """
     对图片进行预测
@@ -56,26 +52,20 @@ def predict_image(image_data, top_k=5):
         # 计算相似度
         sims = torch.matmul(query_emb, gallery_embs.T)[0]  # [N]
 
-        # 第一阶段：高质量候选（使用固定的 top_n）
-        vals, idxs = torch.topk(sims, min(TOP_N, sims.size(0)))
-
+        # 计算所有相似度并排序
+        all_idxs = torch.argsort(sims, descending=True)
+        
+        # 收集 top_k 个唯一标签（按相似度从高到低）
         seen = {}  # label -> best score
-        for v, idx in zip(vals.tolist(), idxs.tolist()):
+        for idx in all_idxs.tolist():
             label = gallery_labels[idx]
-            if label not in seen or v > seen[label]:
-                seen[label] = v
-
-        # 第二阶段：强制补齐
-        if len(seen) < top_k:
-            all_idxs = torch.argsort(sims, descending=True)
-            for idx in all_idxs.tolist():
-                label = gallery_labels[idx]
-                if label not in seen:
-                    seen[label] = sims[idx].item()
+            if label not in seen:
+                seen[label] = sims[idx].item()
+                # 当收集到足够的唯一标签时停止
                 if len(seen) >= top_k:
                     break
 
-        # 最终Top-K
+        # 最终Top-K：按分数排序并取前 top_k 个
         final = sorted(seen.items(), key=lambda x: x[1], reverse=True)[:top_k]
 
         # 格式化结果

@@ -32,7 +32,7 @@ async def health():
 @app.post("/predict", response_model=PredictionResponse, tags=["Prediction"])
 async def predict(
     image: UploadFile = File(..., description="Image file to predict"),
-    top_k: int = Form(5, description="Number of top results to return")
+    top_k: int = Form(10, description="Number of top results to return")
 ):
     """预测接口 - 通过文件上传"""
     if not image.content_type or not image.content_type.startswith("image/"):
@@ -45,50 +45,77 @@ async def predict(
 
 @app.on_event("startup")
 async def startup_event():
-    """启动时检查模型是否已加载"""
+    """启动时加载模型和gallery"""
+    import asyncio
+    
     model = get_model()
     gallery_embs, _ = get_gallery()
     
-    if model is None:
-        raise RuntimeError("Model not loaded before server startup")
-    if gallery_embs is None:
-        raise RuntimeError("Gallery not loaded before server startup")
+    if model is None or gallery_embs is None:
+        print("[Startup] Loading model and gallery...")
+        await asyncio.to_thread(load_model)
+        
+        model = get_model()
+        gallery_embs, gallery_labels = get_gallery()
+        
+        if model is None:
+            raise RuntimeError("Failed to load model during startup")
+        if gallery_embs is None or gallery_labels is None:
+            raise RuntimeError("Failed to load gallery during startup")
+        
+        print("[Startup] ✓ Model and gallery loaded successfully!")
     
     print("Server ready!")
 
 
 def main():
-    """主函数 - 先加载模型，再启动服务"""
+    """主函数 - 启动服务"""
     import uvicorn
     
     print("=" * 50)
     print("Starting Revelation service...")
     print("=" * 50)
     
-    # 同步加载模型和gallery（阻塞直到完成）
-    print("\n[1/2] Loading model and gallery...")
-    try:
-        load_model()
-        print("[1/2] ✓ Model and gallery loaded successfully!")
-    except Exception as e:
-        print(f"[1/2] ✗ Error loading model: {e}")
-        raise
-    
-    # 验证加载状态
-    model = get_model()
-    gallery_embs, gallery_labels = get_gallery()
-    
-    if model is None:
-        raise RuntimeError("Model is None after loading")
-    if gallery_embs is None or gallery_labels is None:
-        raise RuntimeError("Gallery is None after loading")
-    
-    print(f"[2/2] Starting web server on port {os.getenv('PORT', 5000)}...")
-    print("=" * 50)
-    
-    # 启动服务
     port = int(os.getenv('PORT', 5000))
-    uvicorn.run(app, host="0.0.0.0", port=port)
+    debug = os.getenv('DEBUG', 'true').lower() == 'true'
+    
+    if debug:
+        print(f"Starting web server in DEBUG mode on port {port}...")
+        print("Model will be loaded during application startup.")
+        print("=" * 50)
+        uvicorn.run(
+            "revelation.app:app",
+            host="0.0.0.0", 
+            port=port,
+            reload=True,
+            log_level="debug"
+        )
+    else:
+        print("\n[1/2] Loading model and gallery...")
+        try:
+            load_model()
+            print("[1/2] ✓ Model and gallery loaded successfully!")
+        except Exception as e:
+            print(f"[1/2] ✗ Error loading model: {e}")
+            raise
+        
+        model = get_model()
+        gallery_embs, gallery_labels = get_gallery()
+        
+        if model is None:
+            raise RuntimeError("Model is None after loading")
+        if gallery_embs is None or gallery_labels is None:
+            raise RuntimeError("Gallery is None after loading")
+        
+        print(f"[2/2] Starting web server on port {port}...")
+        print("=" * 50)
+        uvicorn.run(
+            app,
+            host="0.0.0.0", 
+            port=port,
+            reload=False,
+            log_level="info"
+        )
 
 
 if __name__ == '__main__':
