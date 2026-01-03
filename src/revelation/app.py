@@ -32,14 +32,21 @@ async def health():
 @app.post("/predict", response_model=PredictionResponse, tags=["Prediction"])
 async def predict(
     image: UploadFile = File(..., description="Image file to predict"),
-    top_k: int = Form(10, description="Number of top results to return")
+    top_k: int = Form(5, description="Number of top results to return")
 ):
     """预测接口 - 通过文件上传"""
     if not image.content_type or not image.content_type.startswith("image/"):
         raise HTTPException(status_code=400, detail="File must be an image")
     
+    if top_k <= 0:
+        top_k = 5
+    
     image_data = await image.read()
     result = predict_image(image_data, top_k=top_k)
+    
+    if len(result["results"]) > top_k:
+        result["results"] = result["results"][:top_k]
+    
     return result
 
 
