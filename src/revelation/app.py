@@ -4,6 +4,7 @@ FastAPI 应用主文件
 
 import os
 from fastapi import FastAPI
+from fastapi.middleware.cors import CORSMiddleware
 
 from .api.routes import setup_routes
 from .ml.loader import load_model, get_model, get_gallery
@@ -12,6 +13,15 @@ app = FastAPI(
     title="Revelation",
     description="FFXIV equipment recognition microservice by AetherSight",
     version="0.1.0"
+)
+
+# 配置CORS中间件
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],  # 允许所有来源，生产环境建议指定具体域名
+    allow_credentials=True,
+    allow_methods=["*"],  # 允许所有HTTP方法
+    allow_headers=["*"],  # 允许所有请求头
 )
 
 setup_routes(app)
