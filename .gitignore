@@ -50,14 +50,12 @@ models/*.ckpt
 # Docker
 .dockerignore
 
-# 其他
 *.jpg
 *.jpeg
 *.png
 *.gif
 *.webp
 
-# 反馈数据
 feedback_images/
 feedback.db
 *.db-journal
