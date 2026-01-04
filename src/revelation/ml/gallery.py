@@ -6,7 +6,7 @@ import os
 import torch
 import torch.nn.functional as F
 from torch.utils.data import DataLoader
-from torch.cuda.amp import autocast
+from torch.amp import autocast
 
 from .dataset import GalleryDataset
 
@@ -84,7 +84,9 @@ def build_gallery(
     for imgs, labels in loader:
         imgs = imgs.to(device, non_blocking=True)
 
-        with autocast(enabled=(device.type == "cuda")):
+        # 使用autocast加速（支持CUDA和MPS）
+        use_autocast = device.type in ("cuda", "mps")
+        with autocast(device_type=device.type, enabled=use_autocast):
             emb = model(imgs)
 
         emb = F.normalize(emb, dim=1)

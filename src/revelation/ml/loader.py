@@ -43,7 +43,13 @@ def load_model():
     """加载模型和gallery"""
     global model, transform, device, gallery_embs, gallery_labels
 
-    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+    # 设备选择优先级: CUDA > MPS > CPU
+    if torch.cuda.is_available():
+        device = torch.device("cuda")
+    elif torch.backends.mps.is_available():
+        device = torch.device("mps")
+    else:
+        device = torch.device("cpu")
     print(f"Using device: {device}")
 
     model_path = os.path.join(MODEL_DIR, "aethersight.pth")
