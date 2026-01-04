@@ -1,6 +1,6 @@
 # Revelation
 
-FFXIV equipment recognition microservice by AetherSight.
+FFXIV equipment recognition microservice by AetherSight. 
 
 ## Features
 
