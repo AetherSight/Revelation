@@ -25,7 +25,6 @@ def load_gear_model_info(csv_path: str = None):
         csv_path = os.getenv('GEAR_MODEL_INFO_CSV', 'data/gear_model_info.csv')
     
     if not os.path.exists(csv_path):
-        print(f"[GearModel] Warning: CSV file not found: {csv_path}")
         _gear_model_data = {}
         _model_groups = defaultdict(list)
         return
@@ -41,7 +40,7 @@ def load_gear_model_info(csv_path: str = None):
                 item_name = row.get('物品名称', '').strip('"')
                 model_path = row.get('模型路径', '')
                 
-                if not item_name or not model_path:
+                if not item_id or not item_name or not model_path:
                     continue
                 
                 _gear_model_data[item_id] = {
@@ -51,10 +50,7 @@ def load_gear_model_info(csv_path: str = None):
                 }
                 
                 _model_groups[model_path].append(item_id)
-        
-        print(f"[GearModel] Loaded {len(_gear_model_data)} gear items, {len(_model_groups)} model groups")
     except Exception as e:
-        print(f"[GearModel] Error loading CSV file: {e}")
         _gear_model_data = {}
         _model_groups = defaultdict(list)
 
@@ -95,6 +91,7 @@ def get_same_model_gears(gear_label: str) -> List[Dict[str, str]]:
         return []
     
     gear_id = gear_label.rsplit('_', 1)[1]
+    
     gear_info = get_gear_info(gear_id)
     if not gear_info:
         return []
