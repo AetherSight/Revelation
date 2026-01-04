@@ -3,14 +3,14 @@ API路由定义
 """
 
 import asyncio
-from fastapi import File, UploadFile, Form, HTTPException
+from fastapi import File, UploadFile, Form, HTTPException, Query
 
-from .schemas import HealthResponse, PredictionResponse, FeedbackResponse
+from .schemas import HealthResponse, PredictionResponse, FeedbackResponse, AutocompleteResponse
 from ..ml.loader import get_model, get_gallery, load_model
 from ..ml.predictor import predict_image
 from ..data.storage import get_storage_backend
 from ..data.database import init_db, create_feedback_record
-from ..data.gear_model import load_gear_model_info
+from ..data.gear_model import load_gear_model_info, search_gears_by_name, autocomplete_gear_names, get_same_model_gears
 
 
 def setup_routes(app):
@@ -68,6 +68,42 @@ def setup_routes(app):
             }
         except Exception as e:
             raise HTTPException(status_code=500, detail=f"Failed to save feedback: {str(e)}")
+    
+    @app.get("/search/autocomplete", response_model=AutocompleteResponse, tags=["Search"])
+    async def autocomplete(
+        q: str = Query(..., description="Search query for gear name autocomplete"),
+        limit: int = Query(10, ge=1, le=50, description="Maximum number of suggestions")
+    ):
+        """装备名称自动补全接口"""
+        if not q or not q.strip():
+            return {"suggestions": []}
+        
+        suggestions = autocomplete_gear_names(q.strip(), limit)
+        return {"suggestions": suggestions}
+    
+    @app.get("/search", response_model=PredictionResponse, tags=["Search"])
+    async def search(
+        q: str = Query(..., description="Search query for gear name"),
+        limit: int = Query(10, ge=1, le=50, description="Maximum number of results")
+    ):
+        """装备名称搜索接口 - 返回格式与预测接口相同，包含同模装备信息"""
+        if not q or not q.strip():
+            return {"results": []}
+        
+        search_results = search_gears_by_name(q.strip(), limit)
+        
+        results = []
+        for i, gear in enumerate(search_results, 1):
+            label = gear['label']
+            same_model_gears = get_same_model_gears(label)
+            results.append({
+                "rank": i,
+                "label": label,
+                "score": 1.0,  # 搜索结果的score设为1.0
+                "same_model_gears": same_model_gears
+            })
+        
+        return {"results": results}
     
     @app.on_event("startup")
     async def startup_event():

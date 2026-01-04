@@ -115,6 +115,89 @@ def get_same_model_gears(gear_label: str) -> List[Dict[str, str]]:
     return same_model_gears
 
 
+def search_gears_by_name(query: str, limit: int = 10) -> List[Dict]:
+    """
+    根据装备名称搜索装备
+    
+    Args:
+        query: 搜索关键词
+        limit: 返回结果数量限制
+        
+    Returns:
+        匹配的装备列表，每个元素包含id, name, label（格式："装备名称_物品ID"）
+    """
+    if _gear_model_data is None:
+        load_gear_model_info()
+    
+    if not _gear_model_data or not query:
+        return []
+    
+    query = query.strip()
+    if not query:
+        return []
+    
+    results = []
+    query_lower = query.lower()
+    
+    for gear_id, gear_info in _gear_model_data.items():
+        gear_name = gear_info.get('name', '')
+        if query_lower in gear_name.lower():
+            label = f"{gear_name}_{gear_id}"
+            results.append({
+                'id': gear_id,
+                'name': gear_name,
+                'label': label
+            })
+    
+    # 按名称长度和匹配位置排序（精确匹配优先）
+    results.sort(key=lambda x: (
+        x['name'].lower().startswith(query_lower),
+        x['name'].lower().index(query_lower) if query_lower in x['name'].lower() else 999,
+        len(x['name'])
+    ))
+    
+    return results[:limit]
+
+
+def autocomplete_gear_names(query: str, limit: int = 10) -> List[str]:
+    """
+    装备名称自动补全
+    
+    Args:
+        query: 搜索关键词
+        limit: 返回结果数量限制
+        
+    Returns:
+        匹配的装备名称列表
+    """
+    if _gear_model_data is None:
+        load_gear_model_info()
+    
+    if not _gear_model_data or not query:
+        return []
+    
+    query = query.strip()
+    if not query:
+        return []
+    
+    names = set()
+    query_lower = query.lower()
+    
+    for gear_info in _gear_model_data.values():
+        gear_name = gear_info.get('name', '')
+        if query_lower in gear_name.lower():
+            names.add(gear_name)
+    
+    # 按名称长度和匹配位置排序
+    sorted_names = sorted(names, key=lambda x: (
+        x.lower().startswith(query_lower),
+        x.lower().index(query_lower) if query_lower in x.lower() else 999,
+        len(x)
+    ))
+    
+    return sorted_names[:limit]
+
+
 def get_gear_model_info():
     """
     获取装备模型信息数据（用于调试）

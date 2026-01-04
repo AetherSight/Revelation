@@ -30,3 +30,7 @@ class PredictionResponse(BaseModel):
 
 class FeedbackResponse(BaseModel):
     status: str
+
+
+class AutocompleteResponse(BaseModel):
+    suggestions: List[str]
