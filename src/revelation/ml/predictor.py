@@ -78,18 +78,6 @@ def extract_patches_from_image(img, patch_transform, model, device, num_patches=
 
 
 def predict_image(image_data, top_k=5, patch_weight=0.0, patch_only=False):
-    """
-    对图片进行预测
-    
-    Args:
-        image_data: 图片数据（bytes或文件路径）
-        top_k: 返回Top-K结果
-        patch_weight: 局部patch权重（0-1浮点数），全局权重自动计算为 1 - patch_weight
-        patch_only: 如果为True，将输入图像视为单个patch（不需要提取），图像本身用作patch特征进行匹配
-    
-    Returns:
-        预测结果字典
-    """
     if patch_only:
         global_weight = 0.0
         patch_weight = 1.0
@@ -97,7 +85,7 @@ def predict_image(image_data, top_k=5, patch_weight=0.0, patch_only=False):
         global_weight = 1.0 - patch_weight
     
     use_patch_match = patch_weight > 0
-    num_patches = 5  # 从完整图像提取时的固定patch数量
+    num_patches = 5
     
     model = get_model()
     gallery_embs, gallery_labels = get_gallery()

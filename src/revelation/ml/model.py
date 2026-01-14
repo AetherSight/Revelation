@@ -12,6 +12,7 @@ class EmbeddingModel(nn.Module):
     """
     基于 EfficientNet 的嵌入模型
     用于生成归一化的特征向量
+    支持全局和局部特征提取
     """
     def __init__(self, model_name="tf_efficientnetv2_m", emb_dim=512):
         """
@@ -25,7 +26,11 @@ class EmbeddingModel(nn.Module):
             pretrained=True,
             num_classes=0  # 去掉分类头
         )
-        self.head = nn.Sequential(
+        self.global_head = nn.Sequential(
+            nn.Linear(self.backbone.num_features, emb_dim),
+            nn.BatchNorm1d(emb_dim)
+        )
+        self.local_head = nn.Sequential(
             nn.Linear(self.backbone.num_features, emb_dim),
             nn.BatchNorm1d(emb_dim)
         )
@@ -37,17 +42,18 @@ class EmbeddingModel(nn.Module):
             return_local: 是否返回局部特征
         
         Returns:
-            如果 return_local=False: 返回 (emb, None)
+            如果 return_local=False: 返回 (global_emb, None)
             如果 return_local=True: 返回 (global_emb, local_emb)
             其中 emb 是归一化的嵌入向量 [B, emb_dim]
         """
         feat = self.backbone(x)
-        emb = self.head(feat)
-        emb = F.normalize(emb, dim=1)
+        global_emb = self.global_head(feat)
+        global_emb = F.normalize(global_emb, dim=1)
         
         if return_local:
-            # 对于局部特征，返回相同的嵌入（因为模型结构相同）
-            return emb, emb
+            local_emb = self.local_head(feat)
+            local_emb = F.normalize(local_emb, dim=1)
+            return global_emb, local_emb
         else:
-            return emb, None
+            return global_emb, None
 

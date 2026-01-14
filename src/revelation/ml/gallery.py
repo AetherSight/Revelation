@@ -87,7 +87,7 @@ def build_gallery(
         # 使用autocast加速（支持CUDA和MPS）
         use_autocast = device.type in ("cuda", "mps")
         with autocast(device_type=device.type, enabled=use_autocast):
-            emb = model(imgs)
+            emb, _ = model(imgs, return_local=False)
 
         emb = F.normalize(emb, dim=1)
 
