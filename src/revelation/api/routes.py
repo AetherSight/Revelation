@@ -30,7 +30,9 @@ def setup_routes(app):
     
     @app.post("/predict", response_model=PredictionResponse, tags=["Prediction"])
     async def predict(
-        image: UploadFile = File(..., description="Image file to predict")
+        image: UploadFile = File(..., description="Image file to predict"),
+        patch_weight: float = Query(0.0, ge=0.0, le=1.0, description="局部patch权重（0-1浮点数）"),
+        patch_only: bool = Query(False, description="是否仅使用patch特征（true/false布尔值）")
     ):
         """预测接口 - 通过文件上传（支持并发），固定返回top-10结果"""
         if not image.content_type or not image.content_type.startswith("image/"):
@@ -38,7 +40,7 @@ def setup_routes(app):
         
         top_k = 10
         image_data = await image.read()
-        result = await asyncio.to_thread(predict_image, image_data, top_k)
+        result = await asyncio.to_thread(predict_image, image_data, top_k, patch_weight, patch_only)
         
         if len(result["results"]) > top_k:
             result["results"] = result["results"][:top_k]

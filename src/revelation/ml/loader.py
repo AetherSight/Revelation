@@ -6,7 +6,7 @@ import os
 import torch
 
 from .model import EmbeddingModel
-from .preprocess import InferenceTransform
+from .preprocess import InferenceTransform, PatchTransform
 from .gallery import build_gallery
 
 model = None
@@ -32,6 +32,11 @@ def get_gallery():
 def get_transform():
     """获取transform"""
     return transform
+
+
+def get_patch_transform():
+    """获取patch transform"""
+    return PatchTransform(return_tensor=True)
 
 
 def get_device():

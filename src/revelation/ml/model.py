@@ -30,16 +30,24 @@ class EmbeddingModel(nn.Module):
             nn.BatchNorm1d(emb_dim)
         )
     
-    def forward(self, x):
+    def forward(self, x, return_local=False):
         """
         Args:
             x: 输入图像张量 [B, C, H, W]
+            return_local: 是否返回局部特征
         
         Returns:
-            归一化的嵌入向量 [B, emb_dim]
+            如果 return_local=False: 返回 (emb, None)
+            如果 return_local=True: 返回 (global_emb, local_emb)
+            其中 emb 是归一化的嵌入向量 [B, emb_dim]
         """
         feat = self.backbone(x)
         emb = self.head(feat)
         emb = F.normalize(emb, dim=1)
-        return emb
+        
+        if return_local:
+            # 对于局部特征，返回相同的嵌入（因为模型结构相同）
+            return emb, emb
+        else:
+            return emb, None
 
